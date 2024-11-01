@@ -65,7 +65,7 @@ func Configure(opts Options) {
 }
 
 func printLog(levelSubstring string, msg ...interface{}) {
-	log.Printf("[sphere] [%v] %v", levelSubstring, fmt.Sprint(msg...))
+	log.Printf("%s[%s] %v", options.prefix, levelSubstring, fmt.Sprint(msg...))
 }
 
 func Debug(msg ...interface{}) {
