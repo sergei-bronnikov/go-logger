@@ -48,7 +48,6 @@ var levelSubstrings = struct {
 }
 
 func init() {
-	//configureOutput()
 	log.SetFlags(log.LUTC | log.Ldate | log.Lmicroseconds)
 }
 
