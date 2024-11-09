@@ -3,7 +3,14 @@ package logger
 import (
 	"fmt"
 	"log"
+	"os"
 )
+
+type logger struct {
+	level        LogLevel
+	lvlSubStrMap map[LogLevel]string
+	logger       *log.Logger
+}
 
 const (
 	// Colors
@@ -15,114 +22,145 @@ const (
 	fatalColor = "\033[41m"
 )
 
-var options = loggerOptions{
-	level:       LogLevels.Info,
-	prettyPrint: false,
-	prefix:      "",
-}
-
-type levelSubstring struct {
-	level string
-	color string
-}
-
-func (ls *levelSubstring) String() string {
-	if options.prettyPrint {
-		return fmt.Sprintf("%v%v%v", ls.color, ls.level, resetColor)
-	}
-	return ls.level
-}
-
-var levelSubstrings = struct {
-	DEBUG levelSubstring
-	INFO  levelSubstring
-	WARN  levelSubstring
-	ERROR levelSubstring
-	FATAL levelSubstring
-}{
-	DEBUG: levelSubstring{"DEBUG", debugColor},
-	INFO:  levelSubstring{"INFO", infoColor},
-	WARN:  levelSubstring{"WARN", warnColor},
-	ERROR: levelSubstring{"ERROR", errorColor},
-	FATAL: levelSubstring{"FATAL", fatalColor},
-}
+var instance *logger
 
 func init() {
-	log.SetFlags(log.LUTC | log.Ldate | log.Lmicroseconds)
+	l := log.New(os.Stdout, "", log.LUTC|log.Ldate|log.Lmicroseconds)
+	instance = &logger{
+		level:        LogLevels.Info,
+		lvlSubStrMap: lvlSubStringMap(false),
+		logger:       l,
+	}
+}
+
+func lvlSubStringMap(colorized bool) map[LogLevel]string {
+	result := make(map[LogLevel]string)
+	result[LogLevels.Debug] = paintLvlStr(colorized, "DEBUG", debugColor)
+	result[LogLevels.Info] = paintLvlStr(colorized, "INFO", infoColor)
+	result[LogLevels.Warn] = paintLvlStr(colorized, "WARNING", warnColor)
+	result[LogLevels.Error] = paintLvlStr(colorized, "ERROR", errorColor)
+	result[LogLevels.Fatal] = paintLvlStr(colorized, "FATAL", fatalColor)
+	return result
+}
+
+func paintLvlStr(colorized bool, level string, color string) string {
+	if colorized {
+		return fmt.Sprintf("%s%s%s", color, level, resetColor)
+	}
+	return level
+}
+
+func (l *logger) printLog(logLevel LogLevel, msg ...interface{}) {
+	log.Printf("[%s] %v", l.lvlSubStrMap[logLevel], fmt.Sprint(msg...))
+}
+
+func (l *logger) Debug(msg ...interface{}) {
+	if l.level >= LogLevels.Debug {
+		l.printLog(LogLevels.Debug, msg...)
+	}
+}
+
+func (l *logger) DebugF(format string, msg ...interface{}) {
+	if l.level >= LogLevels.Debug {
+		l.printLog(LogLevels.Debug, fmt.Sprintf(format, msg...))
+	}
+}
+
+func (l *logger) Info(msg ...interface{}) {
+	if l.level >= LogLevels.Info {
+		l.printLog(LogLevels.Info, msg...)
+	}
+}
+
+func (l *logger) InfoF(format string, msg ...interface{}) {
+	if l.level >= LogLevels.Info {
+		l.printLog(LogLevels.Info, fmt.Sprintf(format, msg...))
+	}
+}
+
+func (l *logger) Warn(msg ...interface{}) {
+	if l.level >= LogLevels.Warn {
+		l.printLog(LogLevels.Warn, msg...)
+	}
+}
+
+func (l *logger) WarnF(format string, msg ...interface{}) {
+	if l.level >= LogLevels.Warn {
+		l.printLog(LogLevels.Warn, fmt.Sprintf(format, msg...))
+	}
+}
+
+func (l *logger) Error(msg ...interface{}) {
+	if l.level >= LogLevels.Error {
+		l.printLog(LogLevels.Error, msg...)
+	}
+}
+
+func (l *logger) ErrorF(format string, msg ...interface{}) {
+	if l.level >= LogLevels.Error {
+		l.printLog(LogLevels.Error, fmt.Sprintf(format, msg...))
+	}
+}
+
+func (l *logger) Fatal(msg ...interface{}) {
+	l.printLog(LogLevels.Fatal, msg...)
+}
+
+func (l *logger) FatalF(format string, msg ...interface{}) {
+	l.printLog(LogLevels.Fatal, fmt.Sprintf(format, msg...))
 }
 
 func Configure(opts Options) {
 	if opts.Level != nil {
-		options.level = *opts.Level
+		instance.level = *opts.Level
 	}
-	if opts.Pretty != nil {
-		options.prettyPrint = *opts.Pretty
+	if opts.Colorized != nil {
+		instance.lvlSubStrMap = lvlSubStringMap(*opts.Colorized)
 	}
 	if opts.Prefix != nil {
-		options.prefix = *opts.Prefix
+		instance.logger.SetPrefix(*opts.Prefix)
 	}
-}
-
-func printLog(levelSubstring string, msg ...interface{}) {
-	log.Printf("%s[%s] %v", options.prefix, levelSubstring, fmt.Sprint(msg...))
+	if opts.Writer != nil {
+		instance.logger.SetOutput(opts.Writer)
+	}
 }
 
 func Debug(msg ...interface{}) {
-	if options.level&debugFlag > 0 {
-		printLog(levelSubstrings.DEBUG.String(), msg...)
-	}
+	instance.Debug(msg...)
 }
 
-func DebugF(msg string, args ...interface{}) {
-	if options.level&debugFlag > 0 {
-		printLog(levelSubstrings.DEBUG.String(), fmt.Sprintf(msg, args...))
-	}
+func DebugF(format string, msg ...interface{}) {
+	instance.DebugF(format, msg...)
 }
 
 func Info(msg ...interface{}) {
-	if options.level&infoFlag > 0 {
-		printLog(levelSubstrings.INFO.String(), msg...)
-	}
+	instance.Info(msg...)
 }
 
-func InfoF(msg string, args ...interface{}) {
-	if options.level&infoFlag > 0 {
-		printLog(levelSubstrings.INFO.String(), fmt.Sprintf(msg, args...))
-	}
+func InfoF(format string, msg ...interface{}) {
+	instance.InfoF(format, msg...)
 }
 
 func Warn(msg ...interface{}) {
-	if options.level&warnFlag > 0 {
-		printLog(levelSubstrings.WARN.String(), msg...)
-	}
+	instance.Warn(msg...)
 }
 
-func WarnF(msg string, args ...interface{}) {
-	if options.level&warnFlag > 0 {
-		printLog(levelSubstrings.WARN.String(), fmt.Sprintf(msg, args...))
-	}
+func WarnF(format string, msg ...interface{}) {
+	instance.WarnF(format, msg...)
 }
 
 func Error(msg ...interface{}) {
-	if options.level&errorFlag > 0 {
-		printLog(levelSubstrings.ERROR.String(), msg...)
-	}
+	instance.Error(msg...)
 }
 
-func ErrorF(msg string, args ...interface{}) {
-	if options.level&errorFlag > 0 {
-		printLog(levelSubstrings.ERROR.String(), fmt.Sprintf(msg, args...))
-	}
+func ErrorF(format string, msg ...interface{}) {
+	instance.ErrorF(format, msg...)
 }
 
 func Fatal(msg ...interface{}) {
-	if options.level&fatalFlag > 0 {
-		printLog(levelSubstrings.FATAL.String(), msg...)
-	}
+	instance.Fatal(msg...)
 }
 
-func FatalF(msg string, args ...interface{}) {
-	if options.level&fatalFlag > 0 {
-		printLog(levelSubstrings.FATAL.String(), fmt.Sprintf(msg, args...))
-	}
+func FatalF(format string, msg ...interface{}) {
+	instance.FatalF(format, msg...)
 }
