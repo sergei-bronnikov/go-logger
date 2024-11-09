@@ -6,7 +6,7 @@ import (
 	"os"
 )
 
-type logger struct {
+type Logger struct {
 	level        LogLevel
 	lvlSubStrMap map[LogLevel]string
 	logger       *log.Logger
@@ -22,15 +22,10 @@ const (
 	fatalColor = "\033[41m"
 )
 
-var instance *logger
+var instance *Logger
 
 func init() {
-	l := log.New(os.Stdout, "", log.LUTC|log.Ldate|log.Lmicroseconds)
-	instance = &logger{
-		level:        LogLevels.Info,
-		lvlSubStrMap: lvlSubStringMap(false),
-		logger:       l,
-	}
+	instance = New()
 }
 
 func lvlSubStringMap(colorized bool) map[LogLevel]string {
@@ -50,64 +45,73 @@ func paintLvlStr(colorized bool, level string, color string) string {
 	return level
 }
 
-func (l *logger) printLog(logLevel LogLevel, msg ...interface{}) {
+func (l *Logger) printLog(logLevel LogLevel, msg ...interface{}) {
 	log.Printf("[%s] %v", l.lvlSubStrMap[logLevel], fmt.Sprint(msg...))
 }
 
-func (l *logger) Debug(msg ...interface{}) {
+func (l *Logger) Debug(msg ...interface{}) {
 	if l.level >= LogLevels.Debug {
 		l.printLog(LogLevels.Debug, msg...)
 	}
 }
 
-func (l *logger) DebugF(format string, msg ...interface{}) {
+func (l *Logger) DebugF(format string, msg ...interface{}) {
 	if l.level >= LogLevels.Debug {
 		l.printLog(LogLevels.Debug, fmt.Sprintf(format, msg...))
 	}
 }
 
-func (l *logger) Info(msg ...interface{}) {
+func (l *Logger) Info(msg ...interface{}) {
 	if l.level >= LogLevels.Info {
 		l.printLog(LogLevels.Info, msg...)
 	}
 }
 
-func (l *logger) InfoF(format string, msg ...interface{}) {
+func (l *Logger) InfoF(format string, msg ...interface{}) {
 	if l.level >= LogLevels.Info {
 		l.printLog(LogLevels.Info, fmt.Sprintf(format, msg...))
 	}
 }
 
-func (l *logger) Warn(msg ...interface{}) {
+func (l *Logger) Warn(msg ...interface{}) {
 	if l.level >= LogLevels.Warn {
 		l.printLog(LogLevels.Warn, msg...)
 	}
 }
 
-func (l *logger) WarnF(format string, msg ...interface{}) {
+func (l *Logger) WarnF(format string, msg ...interface{}) {
 	if l.level >= LogLevels.Warn {
 		l.printLog(LogLevels.Warn, fmt.Sprintf(format, msg...))
 	}
 }
 
-func (l *logger) Error(msg ...interface{}) {
+func (l *Logger) Error(msg ...interface{}) {
 	if l.level >= LogLevels.Error {
 		l.printLog(LogLevels.Error, msg...)
 	}
 }
 
-func (l *logger) ErrorF(format string, msg ...interface{}) {
+func (l *Logger) ErrorF(format string, msg ...interface{}) {
 	if l.level >= LogLevels.Error {
 		l.printLog(LogLevels.Error, fmt.Sprintf(format, msg...))
 	}
 }
 
-func (l *logger) Fatal(msg ...interface{}) {
+func (l *Logger) Fatal(msg ...interface{}) {
 	l.printLog(LogLevels.Fatal, msg...)
 }
 
-func (l *logger) FatalF(format string, msg ...interface{}) {
+func (l *Logger) FatalF(format string, msg ...interface{}) {
 	l.printLog(LogLevels.Fatal, fmt.Sprintf(format, msg...))
+}
+
+func New() *Logger {
+	l := log.New(os.Stdout, "", log.LUTC|log.Ldate|log.Lmicroseconds)
+	return &Logger{
+		level:        LogLevels.Info,
+		lvlSubStrMap: lvlSubStringMap(false),
+		logger:       l,
+	}
 }
 
 func Configure(opts Options) {
