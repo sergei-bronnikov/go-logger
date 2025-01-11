@@ -13,7 +13,6 @@ type Logger struct {
 }
 
 const (
-	// Colors
 	resetColor = "\033[0m"
 	debugColor = "\033[34m"
 	infoColor  = "\033[32m"
